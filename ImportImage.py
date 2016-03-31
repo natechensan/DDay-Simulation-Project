@@ -9,6 +9,7 @@ class ImportImage:
 		self.height = height
 		self.nBunker = nBunker
 		self.matrix = [[-1 for x in range(self.height)] for x in range(self.width)]
+		self.cone = [[] for x in range(nBunker)]
 
 	def set(self):
 		im = Image.open("image/" + self.beach + ".bmp").getdata()
@@ -28,12 +29,26 @@ class ImportImage:
 						if im[i] == (255, 0, t):
 							self.matrix[x][y] = 4 + t
 				i += 1
+		im = Image.open("image/" + self.beach + "_cone.bmp").getdata()
+		i = 0
+		for y in range(self.height):
+			for x in range(self.width):
+				if im[i][1] > 0 and im[i][1] <= self.nBunker:
+					self.cone[im[i][1] - 1].append((x,y))
+				if im[i][2] > 0 and im[i][2] <= self.nBunker:
+					self.cone[im[i][2] - 1].append((x,y))
+				i += 1
 
 	def writeFile(self):
 		text_file = open("image/" + self.beach + ".txt", "w")
 		for y in range(self.height):
 			for x in range(self.width):
 				text_file.write(str(self.matrix[x][y]) + " ")
+			text_file.write("\n")
+		text_file = open("image/" + self.beach + "_cone.txt", "w")
+		for t in range(self.nBunker):
+			for co in self.cone[t]:
+				text_file.write(str(co) + ";")
 			text_file.write("\n")
 
 omaha = ImportImage("omaha", 6600, 1600, 13)
