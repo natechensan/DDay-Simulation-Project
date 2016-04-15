@@ -2,6 +2,7 @@
 from ast import literal_eval
 import sys
 import random
+from ExportImage import exportImage
 
 class Simulation:
     '''
@@ -69,7 +70,7 @@ class Simulation:
         self.soldierHead = None
         self.soldierTail = None
         for i in range(2000):
-            tmp = Soldier(-1, 1000, i, self.bunkers)
+            tmp = Soldier(-1, 1100, i, self.bunkers)
             if self.soldierHead == None:
                 self.soldierHead = tmp
                 self.soldierTail = tmp
@@ -140,6 +141,15 @@ class Simulation:
                 continue
 
             s = s.next
+
+        # if self.steps % 10 == 0:
+        #     testfi2 = open("images2/test" + str(int(self.steps / 10)) + '.csv', 'w') # <<<<<<<<<<<<<<<<<<<<<<<<HERE UNCOMMENT TOPRINT CSV
+        #     temp = self.soldierHead
+        #     while temp != None:
+        #         testfi2.write(str(temp.unit_x)+','+str(temp.unit_y)+'\n')
+        #         temp = temp.next
+        #     testfi2.close() #<<<<<<<<TILL HERE
+        #     exportImage(int(self.steps / 10))
 
         self.steps += 1
 
@@ -226,7 +236,7 @@ class Soldier:
                 distance = newd
                 self.target = i
         self.dx = targets[self.target].center[0] - self.unit_x
-        self.dy = targets[self.target].center[1] - self.unit_x
+        self.dy = targets[self.target].center[1] - self.unit_y
 
     def move(self, cells, targets):
         preference = []
