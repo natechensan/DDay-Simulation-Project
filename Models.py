@@ -1,6 +1,7 @@
 # from gen_ped import gen_ped
 from ast import literal_eval
 import sys
+import random
 
 class Simulation:
     '''
@@ -16,8 +17,10 @@ class Simulation:
         '''
         handles initial random generation and loading the documents
         '''
+        self.steps = 0
         self.bunkers = []
         self.cells = []
+        random.seed(100)
         self.loadDoc()
 
         return
@@ -49,13 +52,34 @@ class Simulation:
             row+=1
             self.cells.append(row_cell)
 
+        conefile = open("image/sword_cone.txt")
+
+        bid = 4
+        for line in conefile:
+            coords = line.split(";")[:-1]
+            for c in coords:
+                cone = literal_eval(c)
+                self.cells[cone[0]][cone[1]].cone = bid
+            bid+=1
+
+
         # print(self.cells)
 
-        self.soldiers = []
-        for i in range(100):
+        self.soldierCount = 0
+        self.soldierHead = None
+        self.soldierTail = None
+        for i in range(2000):
             tmp = Soldier(-1, 1000, i, self.bunkers)
-            self.soldiers.append(tmp)
+            if self.soldierHead == None:
+                self.soldierHead = tmp
+                self.soldierTail = tmp
+            else:
+                self.soldierTail.next = tmp
+                tmp.prev = self.soldierTail
+                self.soldierTail = tmp
+            # self.soldiers.append(tmp)
             self.cells[tmp.unit_x][tmp.unit_y].walkable = 0
+            self.soldierCount += 1
 
 
         return
@@ -75,22 +99,51 @@ class Simulation:
         return False
 
     def execute(self):
-        while(self.bunkersLeft() == True):
+        while(self.bunkersLeft() == True and self.soldierCount > 50):
             self.step()
         
         self.stop_simulation()
     
     def step(self):
 
-        for s in self.soldiers:
+        if self.steps % 200 == 0:
+            print (str(self.soldierCount)+" soldiers left.")
+
+        s = self.soldierHead
+        while s != None:
             if self.bunkers[s.target].dead == True:
                 s.findPath(self.bunkers)
             s.move(self.cells, self.bunkers)
             cur_cell = self.cells[s.unit_x][s.unit_y]
-            if cur_cell.cell_type > 3:
-                self.bunkers[cur_cell.cell_type-4].dead = True
+            
+            if cur_cell.cone > -1 and self.bunkers[cur_cell.cone-4].dead == False:
+                if(random.random() > 0.95):
+                    s.health -= random.randint(5, 15)
+                else:
+                    cur_cell.cone = -1
 
-        print ((self.soldiers[0].unit_x, self.soldiers[0].unit_y))
+            if cur_cell.cell_type > 3 and self.bunkers[cur_cell.cell_type-4].dead == False:
+                self.bunkers[cur_cell.cell_type-4].dead = True
+                print ("bunker "+str(cur_cell.cell_type)+" is dead.")
+                print (str(self.soldierCount)+" soldiers left.")
+
+            if s.health <= 0:
+                tmp = s.next
+                if s.prev != None:
+                    s.prev.next = s.next
+                if s.next != None:
+                    s.next.prev = s.prev
+                s.prev = None
+                s.next = None
+                s = tmp
+                self.soldierCount -= 1
+                continue
+
+            s = s.next
+
+        self.steps += 1
+
+        # print ((self.soldiers[0].unit_x, self.soldiers[0].unit_y))
 
         return
         
@@ -98,12 +151,15 @@ class Simulation:
     def stop_simulation(self):
         self.state='stopped'
         print ('simulation over')
-        total_time = self.steps * 0.3
-        print ('total evacuation time: '+str(total_time)+' seconds')
+        print ('battle lasted: '+str(self.steps)+' seconds')
+        if self.soldierCount <= 50:
+            print("Germans win. Damn!")
+        else:
+            print("Allies win!")
 
 
 class Cell(object):
-    def __init__(self,x_pos,y_pos,cellID, cell_type, cones=None, walkable=1):
+    def __init__(self,x_pos,y_pos,cellID, cell_type, walkable=1):
         self.x_pos=x_pos
         self.y_pos=y_pos
         self.cellID=cellID   #seperate CellID and genID and TargetID, so that we can loop through them seperately
@@ -111,7 +167,7 @@ class Cell(object):
         self.walkable=walkable #only cell has walkability, cuz there is no obstacle cells in the csv file
         # self.neighbors = neighbors
         # self.FFs = FFs
-        self.cones = cones
+        self.cone = -1
 
 class Generator(Cell):
     def __init__(self, shipID, *args):
@@ -155,6 +211,9 @@ class Soldier:
 
         self.findPath(targets)
 
+        self.prev = None
+        self.next = None
+
     def findPath(self, targets):
         # distance = pow((targets[0].center[0] - self.unit_x), 2) + pow((targets[0].center[1] - self.unit_y), 2)
         distance = 999999
@@ -171,14 +230,14 @@ class Soldier:
 
     def move(self, cells, targets):
         preference = []
-        diag_prob = 0.5*abs(float(self.dx)/self.dy) # 50% diagonal if dx == dy
+        diag_prob = 0.4 # 40% diagonal if dx == dy
         preference.append(diag_prob)
         dx_dy = abs(self.dx)+abs(self.dy)
         prob = (1-diag_prob)*(abs(float(self.dx))/(abs(self.dx)+abs(self.dy)))
         preference.append(prob)
-        prob = (1-diag_prob)*(abs(float(self.dy))/(abs(self.dx)+abs(self.dy)))
+        prob = 1-prob-diag_prob
         preference.append(prob)
-        preference.sort()
+        preference.sort(reverse=True)
 
         # below should change to likablilty
         for p in preference:
