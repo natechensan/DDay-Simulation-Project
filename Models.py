@@ -2,6 +2,7 @@
 from ast import literal_eval
 import sys
 import random
+from bisect import bisect
 from ExportImage import exportImage
 
 class Simulation:
@@ -31,7 +32,7 @@ class Simulation:
         bunkerFile = open("image/sword_target.txt")
         bid = 4
         for line in bunkerFile:
-            tmp = Bunker(bid, literal_eval(line))
+            tmp = Bunker(bid - 4, literal_eval(line))
             self.bunkers.append(tmp)
             bid += 1
 
@@ -43,12 +44,8 @@ class Simulation:
             row_cell = []
             for t in tmp:
                 ctype = int(t)
-                if ctype > 3:
-                    target = Target(ctype, ctype, row, col, -1, ctype)
-                    row_cell.append(target)
-                else:
-                    cell = Cell(row, col, -1, ctype)
-                    row_cell.append(cell)
+                cell = Cell(row, col, -1, ctype)
+                row_cell.append(cell)
                 col+=1
             row+=1
             self.cells.append(row_cell)
@@ -60,7 +57,7 @@ class Simulation:
             coords = line.split(";")[:-1]
             for c in coords:
                 cone = literal_eval(c)
-                self.cells[cone[0]][cone[1]].cone = bid
+                self.cells[cone[1]][cone[0]].cone = bid - 4
             bid+=1
 
 
@@ -70,7 +67,7 @@ class Simulation:
         self.soldierHead = None
         self.soldierTail = None
         for i in range(2000):
-            tmp = Soldier(-1, 1100, i, self.bunkers)
+            tmp = Soldier(-1, i, 1100, self.bunkers)
             if self.soldierHead == None:
                 self.soldierHead = tmp
                 self.soldierTail = tmp
@@ -79,7 +76,7 @@ class Simulation:
                 tmp.prev = self.soldierTail
                 self.soldierTail = tmp
             # self.soldiers.append(tmp)
-            self.cells[tmp.unit_x][tmp.unit_y].walkable = 0
+            self.cells[tmp.unit_y][tmp.unit_x].walkable = 0
             self.soldierCount += 1
 
 
@@ -113,15 +110,13 @@ class Simulation:
         s = self.soldierHead
         while s != None:
             if self.bunkers[s.target].dead == True:
-                s.findPath(self.bunkers)
+                s.findTarget(self.bunkers)
             s.move(self.cells, self.bunkers)
-            cur_cell = self.cells[s.unit_x][s.unit_y]
+            cur_cell = self.cells[s.unit_y][s.unit_x]
             
-            if cur_cell.cone > -1 and self.bunkers[cur_cell.cone-4].dead == False:
+            if cur_cell.cone > -1 and self.bunkers[cur_cell.cone].dead == False:
                 if(random.random() > 0.95):
-                    s.health -= random.randint(5, 15)
-                else:
-                    cur_cell.cone = -1
+                    s.health -= random.randint(1, 3) # (5, 15)
 
             if cur_cell.cell_type > 3 and self.bunkers[cur_cell.cell_type-4].dead == False:
                 self.bunkers[cur_cell.cell_type-4].dead = True
@@ -142,14 +137,19 @@ class Simulation:
 
             s = s.next
 
-        # if self.steps % 10 == 0:
-        #     testfi2 = open("images2/test" + str(int(self.steps / 10)) + '.csv', 'w') # <<<<<<<<<<<<<<<<<<<<<<<<HERE UNCOMMENT TOPRINT CSV
-        #     temp = self.soldierHead
-        #     while temp != None:
-        #         testfi2.write(str(temp.unit_x)+','+str(temp.unit_y)+'\n')
-        #         temp = temp.next
-        #     testfi2.close() #<<<<<<<<TILL HERE
-        #     exportImage(int(self.steps / 10))
+
+
+        if self.steps % 10 == 0:
+            testfi2 = open("images2/test" + str(int(self.steps / 10)) + '.csv', 'w')
+            temp = self.soldierHead
+            while temp != None:
+                testfi2.write(str(temp.unit_x)+','+str(temp.unit_y)+'\n')
+                temp = temp.next
+            testfi2.close()
+            exportImage(int(self.steps / 10))
+
+
+            
 
         self.steps += 1
 
@@ -184,12 +184,6 @@ class Generator(Cell):
         super(Generator, self).__init__(*args)
         self.shipID = shipID
 
-class Target(Cell):
-    def __init__(self, targetID, bunkerID, *args):
-        super(Target, self).__init__(*args)
-        self.targetID=self.cell_type
-        self.bunkerID = bunkerID
-
 class Land(Cell):
     def __init__(self, height, *args): 
         super(Land, self).__init__(*args)
@@ -219,71 +213,104 @@ class Soldier:
 
         self.stay = 0 #count turns stayed
 
-        self.findPath(targets)
+        self.findTarget(targets)
 
         self.prev = None
         self.next = None
 
-    def findPath(self, targets):
+    def findTarget(self, targets):
         # distance = pow((targets[0].center[0] - self.unit_x), 2) + pow((targets[0].center[1] - self.unit_y), 2)
         distance = 999999
         self.target = -1
-        for i in range(len(targets)):
-            if targets[i].dead == True:
+        for t in targets:
+            if t.dead == True:
                 continue
-            newd = pow((targets[i].center[0] - self.unit_x), 2) + pow((targets[i].center[1] - self.unit_y), 2)
+            newd = pow((t.center[0] - self.unit_x), 2) + pow((t.center[1] - self.unit_y), 2)
             if newd < distance:
                 distance = newd
-                self.target = i
-        self.dx = targets[self.target].center[0] - self.unit_x
-        self.dy = targets[self.target].center[1] - self.unit_y
+                self.target = t.bID
+        # self.dx = targets[self.target].center[0] - self.unit_x
+        # self.dy = targets[self.target].center[1] - self.unit_y
 
     def move(self, cells, targets):
-        preference = []
-        diag_prob = 0.4 # 40% diagonal if dx == dy
-        preference.append(diag_prob)
-        dx_dy = abs(self.dx)+abs(self.dy)
-        prob = (1-diag_prob)*(abs(float(self.dx))/(abs(self.dx)+abs(self.dy)))
-        preference.append(prob)
-        prob = 1-prob-diag_prob
-        preference.append(prob)
-        preference.sort(reverse=True)
+        dx = float(targets[self.target].center[0] - self.unit_x)
+        dy = float(targets[self.target].center[1] - self.unit_y)
+        dxa = abs(dx)
+        dya = abs(dy)
+        probs = [0.0] * 8
+        maxDiagProb = 0.6 # Tunable
+        randomProb = 0.1 # Tunable
 
-        # below should change to likablilty
-        for p in preference:
-            newCell = [0]*2
-            if p == diag_prob: #diagonal
-                if self.unit_x < targets[self.target].center[0]:
-                    newCell[0] = self.unit_x + 1
-                else:
-                    newCell[0] = self.unit_x - 1
-                if self.unit_y < targets[self.target].center[1]:
-                    newCell[1] = self.unit_y + 1
-                else:
-                    newCell[1] = self.unit_y - 1
+        if dxa == 0 and dya == 0:
+            return
 
-            elif p == prob: #vertical
-                newCell[0] = self.unit_x
-                if self.unit_y < targets[self.target].center[1]:
-                    newCell[1] = self.unit_y + 1
-                else:
-                    newCell[1] = self.unit_y - 1
+        pd = maxDiagProb * 2 * min(dxa, dya) / (dxa + dya)
+        if dx < dy:
+            px = (1 - maxDiagProb - randomProb) * dxa / (dxa + dya)
+            py = 1 - randomProb - pd - px
+        else:
+            py = (1 - maxDiagProb - randomProb) * dya / (dxa + dya)
+            px = 1 - randomProb - pd - py
 
-            else: #horizontal
-                newCell[1] = self.unit_y
-                if self.unit_x < targets[self.target].center[0]:
-                    newCell[0] = self.unit_x + 1
-                else:
-                    newCell[0] = self.unit_x - 1
+        if dx >= 0 and dy >= 0:
+            probs[7] = pd
+            probs[4] = px
+            probs[6] = py
+        elif dx >= 0 and dy < 0:
+            probs[2] = pd
+            probs[4] = px
+            probs[1] = py
+        elif dx < 0 and dy < 0:
+            probs[0] = pd
+            probs[3] = px
+            probs[1] = py
+        elif dx < 0 and dy >= 0:
+            probs[5] = pd
+            probs[3] = px
+            probs[6] = py
 
-            if cells[newCell[0]][newCell[1]].walkable < 1:
-                continue
-            else:
-                cells[self.unit_x][self.unit_y].walkable = 1;
-                self.unit_x = newCell[0]
-                self.unit_y = newCell[1]
-                cells[self.unit_x][self.unit_y].walkable = 0;
+        for i in range(10):
+            rng = random.randint(0, 7)
+            probs[rng] += randomProb / 10
+
+        cdf = [probs[0]]
+        for i in range(1, len(probs)):
+            cdf.append(cdf[-1] + probs[i])
+        rng = random.random()
+        for i in range(8):
+            decision = i
+            if rng < cdf[i]:
                 break
+
+        nx = self.unit_x
+        ny = self.unit_y
+
+        if decision == 0:
+            nx = self.unit_x - 1
+            ny = self.unit_y - 1
+        elif decision == 1:
+            ny = self.unit_y - 1
+        elif decision == 2:
+            nx = self.unit_x + 1
+            ny = self.unit_y - 1
+        elif decision == 3:
+            nx = self.unit_x - 1
+        elif decision == 4:
+            nx = self.unit_x + 1
+        elif decision == 5:
+            nx = self.unit_x - 1
+            ny = self.unit_y + 1
+        elif decision == 6:
+            ny = self.unit_y + 1
+        elif decision == 7:
+            nx = self.unit_x + 1
+            ny = self.unit_y + 1
+
+        if cells[ny][nx].walkable != 0:
+            cells[self.unit_y][self.unit_x].walkable = 1;
+            self.unit_x = nx
+            self.unit_y = ny
+            cells[self.unit_y][self.unit_x].walkable = 0;
 
 class Ship:
     def __init__(self, shipID, unit_x, unit_y, armyID):

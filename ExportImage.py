@@ -14,7 +14,7 @@ def exportImage(t):
 	pedfile = open("images2/test" + str(t) + ".csv", "r+")
 	for line in pedfile:
 		temp = line.split(",")
-		data[int(temp[0])][int(temp[1])] = -1
+		data[int(temp[1])][int(temp[0])] = -1
 	pedfile.close()
 
 	w, h = len(data[0]), len(data)
