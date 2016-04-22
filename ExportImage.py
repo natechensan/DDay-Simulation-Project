@@ -17,6 +17,29 @@ def exportImage(t):
 		data[int(temp[1])][int(temp[0])] = -1
 	pedfile.close()
 
+	pedfile2 = open("images2/ship" + str(t) + ".csv", "r+")
+	for line in pedfile2:
+		temp = line.split(",")
+		data[int(temp[1])][int(temp[0])] = -2
+		data[int(temp[1])][int(temp[0]) - 1] = -2
+		data[int(temp[1])][int(temp[0]) + 1] = -2
+		data[int(temp[1]) + 1][int(temp[0])] = -2
+		data[int(temp[1]) + 1][int(temp[0]) - 1] = -2
+		data[int(temp[1]) + 1][int(temp[0]) + 1] = -2
+		data[int(temp[1]) + 2][int(temp[0])] = -2
+		data[int(temp[1]) + 2][int(temp[0]) - 1] = -2
+		data[int(temp[1]) + 2][int(temp[0]) + 1] = -2
+		data[int(temp[1]) + 3][int(temp[0])] = -2
+		data[int(temp[1]) + 3][int(temp[0]) - 1] = -2
+		data[int(temp[1]) + 3][int(temp[0]) + 1] = -2
+		data[int(temp[1]) + 4][int(temp[0])] = -2
+		data[int(temp[1]) + 4][int(temp[0]) - 1] = -2
+		data[int(temp[1]) + 4][int(temp[0]) + 1] = -2
+		data[int(temp[1]) + 5][int(temp[0])] = -2
+		data[int(temp[1]) + 5][int(temp[0]) - 1] = -2
+		data[int(temp[1]) + 5][int(temp[0]) + 1] = -2
+	pedfile2.close()
+
 	w, h = len(data[0]), len(data)
 	matrix = np.zeros((h, w, 3), dtype=np.uint8)
 
@@ -34,6 +57,8 @@ def exportImage(t):
 				matrix[i, j] = [128, 128, 0]
 			elif int(data[i][j]) == -1:
 				matrix[i, j] = [0, 0, 0]
+			elif int(data[i][j]) == -2:
+				matrix[i, j] = [255, 0, 0]
 			else:
 				matrix[i, j] = [255, 0, 0]
 
