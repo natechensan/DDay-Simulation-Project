@@ -14,7 +14,6 @@ class Simulation:
         self.state=state
         self.time_elapsed=time_elapsed
 
-
     def warmup(self):
         '''
         handles initial random generation and loading the documents
@@ -24,6 +23,23 @@ class Simulation:
         self.cells = []
         random.seed(100)
         self.loadDoc()
+
+         # ships linked list
+        self.shipCount = 0
+        self.shipHead = None
+        self.shipTail = None
+
+        # soldiers linked list
+        self.soldierCount = 0
+        self.soldierHead = None
+        self.soldierTail = None
+
+        # generators linked list
+        self.genCount = 0
+        self.genHead = None
+        self.genTail = None
+
+        self.deadSoldierCount = 0
 
         return
 
@@ -50,6 +66,9 @@ class Simulation:
             row+=1
             self.cells.append(row_cell)
 
+        self.width = len(self.cells[0])
+        self.hasShip = [False] * self.width
+
         conefile = open("image/sword_cone.txt")
 
         bid = 4
@@ -60,25 +79,7 @@ class Simulation:
                 self.cells[cone[1]][cone[0]].cone = bid - 4
             bid+=1
 
-
         # print(self.cells)
-
-        self.soldierCount = 0
-        self.soldierHead = None
-        self.soldierTail = None
-        for i in range(2000):
-            tmp = Soldier(-1, i, 1100, self.bunkers)
-            if self.soldierHead == None:
-                self.soldierHead = tmp
-                self.soldierTail = tmp
-            else:
-                self.soldierTail.next = tmp
-                tmp.prev = self.soldierTail
-                self.soldierTail = tmp
-            # self.soldiers.append(tmp)
-            self.cells[tmp.unit_y][tmp.unit_x].walkable = 0
-            self.soldierCount += 1
-
 
         return
     
@@ -97,7 +98,7 @@ class Simulation:
         return False
 
     def execute(self):
-        while(self.bunkersLeft() == True and self.soldierCount > 50):
+        while(self.bunkersLeft() == True and self.deadSoldierCount < 5000):
             self.step()
         
         self.stop_simulation()
@@ -107,6 +108,94 @@ class Simulation:
         if self.steps % 200 == 0:
             print (str(self.soldierCount)+" soldiers left.")
 
+        # generate ships
+        margin = 100
+        rng = random.randint(margin, self.width - margin)
+        while self.hasShip[rng]:
+            rng = random.randint(margin, self.width - margin)
+        self.hasShip[rng] = True
+
+        tmp = Ship(-1, rng, 0, -1)
+        if self.shipHead == None:
+            self.shipHead = tmp
+            self.shipTail = tmp
+        else:
+            self.shipTail.next = tmp
+            tmp.prev = self.shipTail
+            self.shipTail = tmp
+        self.shipCount += 1
+
+        # move ships and check if ships arrive
+        s = self.shipHead
+        while s != None:
+            if self.cells[s.unit_y][s.unit_x].cell_type != 0:
+                tmp = Generator(s.unit_x, s.unit_y)
+                if self.genHead == None:
+                    self.genHead = tmp
+                    self.genTail = tmp
+                else:
+                    self.genTail.next = tmp
+                    tmp.prev = self.genTail
+                    self.genTail = tmp
+
+                self.hasShip[s.unit_x] = False
+
+                tmp = s.next
+                if s == self.shipHead:
+                    self.shipHead = s.next
+                if s == self.shipTail:
+                    self.shipTail = s.prev
+                if s.prev != None:
+                    s.prev.next = s.next
+                if s.next != None:
+                    s.next.prev = s.prev
+                s.prev = None
+                s.next = None
+                del s
+                s = tmp
+                self.shipCount -= 1
+                continue
+            else:
+                s.unit_y += 5
+                s = s.next
+
+        # generate soldiers
+        g = self.genHead
+        while g != None:
+            if self.cells[g.unit_y][g.unit_x].walkable == 1:
+                tmp = Soldier(-1, g.unit_x, g.unit_y, self.bunkers)
+                if self.soldierHead == None:
+                    self.soldierHead = tmp
+                    self.soldierTail = tmp
+                else:
+                    self.soldierTail.next = tmp
+                    tmp.prev = self.soldierTail
+                    self.soldierTail = tmp
+                self.cells[tmp.unit_y][tmp.unit_x].walkable = 0
+                self.soldierCount += 1
+                g.numSoldier -= 1
+
+            if g.numSoldier <= 0:
+                tmp = g.next
+                if g == self.genHead:
+                    self.genHead = g.next
+                if g == self.genTail:
+                    self.genTail = g.prev
+                if g.prev != None:
+                    g.prev.next = g.next
+                if g.next != None:
+                    g.next.prev = g.prev
+                g.prev = None
+                g.next = None
+                del g
+                g = tmp
+                self.genCount -= 1
+                continue
+
+            g = g.next
+
+
+        # move soldiers
         s = self.soldierHead
         while s != None:
             if self.bunkers[s.target].dead == True:
@@ -125,27 +214,42 @@ class Simulation:
 
             if s.health <= 0:
                 tmp = s.next
+                if s == self.soldierHead:
+                    self.soldierHead = s.next
+                if s == self.soldierTail:
+                    self.soldierTail = s.prev
                 if s.prev != None:
                     s.prev.next = s.next
                 if s.next != None:
                     s.next.prev = s.prev
                 s.prev = None
                 s.next = None
+                del s
                 s = tmp
                 self.soldierCount -= 1
+                self.deadSoldierCount += 1
                 continue
 
             s = s.next
 
 
-
+        # output data
         if self.steps % 10 == 0:
+
             testfi2 = open("images2/test" + str(int(self.steps / 10)) + '.csv', 'w')
             temp = self.soldierHead
             while temp != None:
                 testfi2.write(str(temp.unit_x)+','+str(temp.unit_y)+'\n')
                 temp = temp.next
             testfi2.close()
+
+            testfi3 = open("images2/ship" + str(int(self.steps / 10)) + '.csv', 'w')
+            temp = self.shipHead
+            while temp != None:
+                testfi3.write(str(temp.unit_x)+','+str(temp.unit_y)+'\n')
+                temp = temp.next
+            testfi3.close()
+
             exportImage(int(self.steps / 10))
 
 
@@ -179,10 +283,18 @@ class Cell(object):
         # self.FFs = FFs
         self.cone = -1
 
-class Generator(Cell):
-    def __init__(self, shipID, *args):
-        super(Generator, self).__init__(*args)
-        self.shipID = shipID
+class Generator(object):
+    def __init__(self, unit_x, unit_y):
+        self.unit_x = unit_x
+        self.unit_y = unit_y
+        self.numSoldier = 30
+        self.prev = None
+        self.next = None
+
+# class Generator(Cell):
+#     def __init__(self, shipID, *args):
+#         super(Generator, self).__init__(*args)
+#         self.shipID = shipID
 
 class Land(Cell):
     def __init__(self, height, *args): 
@@ -219,7 +331,6 @@ class Soldier:
         self.next = None
 
     def findTarget(self, targets):
-        # distance = pow((targets[0].center[0] - self.unit_x), 2) + pow((targets[0].center[1] - self.unit_y), 2)
         distance = 999999
         self.target = -1
         for t in targets:
@@ -229,8 +340,6 @@ class Soldier:
             if newd < distance:
                 distance = newd
                 self.target = t.bID
-        # self.dx = targets[self.target].center[0] - self.unit_x
-        # self.dy = targets[self.target].center[1] - self.unit_y
 
     def move(self, cells, targets):
         dx = float(targets[self.target].center[0] - self.unit_x)
@@ -318,6 +427,9 @@ class Ship:
         self.unit_y=unit_y
         self.shipID = shipID
         self.armyID = armyID
+
+        self.prev = None
+        self.next = None
 
 class Turret:
     def __init__(self, tID, damage):
