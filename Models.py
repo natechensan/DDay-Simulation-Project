@@ -2,7 +2,6 @@
 from ast import literal_eval
 import sys
 import random
-from bisect import bisect
 from ExportImage import exportImage
 
 class Simulation:
@@ -40,6 +39,7 @@ class Simulation:
         self.genTail = None
 
         self.deadSoldierCount = 0
+        self.margin = 100
 
         return
 
@@ -107,23 +107,25 @@ class Simulation:
 
         if self.steps % 200 == 0:
             print (str(self.soldierCount)+" soldiers left.")
+            print (str(self.deadSoldierCount)+" soldiers killed.")
 
         # generate ships
-        margin = 100
-        rng = random.randint(margin, self.width - margin)
-        while self.hasShip[rng]:
-            rng = random.randint(margin, self.width - margin)
-        self.hasShip[rng] = True
+        if self.steps % 20 == 0:
+            for i in range(5):
+                rng = random.randint(self.margin, self.width - self.margin)
+                while self.hasShip[rng]:
+                    rng = random.randint(self.margin, self.width - self.margin)
+                self.hasShip[rng] = True
 
-        tmp = Ship(-1, rng, 0, -1)
-        if self.shipHead == None:
-            self.shipHead = tmp
-            self.shipTail = tmp
-        else:
-            self.shipTail.next = tmp
-            tmp.prev = self.shipTail
-            self.shipTail = tmp
-        self.shipCount += 1
+                tmp = Ship(-1, rng, 0, -1)
+                if self.shipHead == None:
+                    self.shipHead = tmp
+                    self.shipTail = tmp
+                else:
+                    self.shipTail.next = tmp
+                    tmp.prev = self.shipTail
+                    self.shipTail = tmp
+                self.shipCount += 1
 
         # move ships and check if ships arrive
         s = self.shipHead
@@ -198,21 +200,30 @@ class Simulation:
         # move soldiers
         s = self.soldierHead
         while s != None:
+
+            # refind target
             if self.bunkers[s.target].dead == True:
                 s.findTarget(self.bunkers)
+
+            # move to new cell
             s.move(self.cells, self.bunkers)
             cur_cell = self.cells[s.unit_y][s.unit_x]
             
+            # attacked by bunker
             if cur_cell.cone > -1 and self.bunkers[cur_cell.cone].dead == False:
                 if(random.random() > 0.95):
                     s.health -= random.randint(1, 3) # (5, 15)
 
+            # attack bunker
             if cur_cell.cell_type > 3 and self.bunkers[cur_cell.cell_type-4].dead == False:
-                self.bunkers[cur_cell.cell_type-4].dead = True
-                print ("bunker "+str(cur_cell.cell_type)+" is dead.")
-                print (str(self.soldierCount)+" soldiers left.")
+                if(random.random() > 0.05):
+                    s.health -= random.randint(10, 30) # (5, 15)
+                if(random.random() > 0.95):
+                    self.bunkers[cur_cell.cell_type - 4].health -= random.randint(1, 3)
 
+            # check if soldier dies
             if s.health <= 0:
+                self.cells[s.unit_y][s.unit_x].walkable = 1
                 tmp = s.next
                 if s == self.soldierHead:
                     self.soldierHead = s.next
@@ -231,6 +242,14 @@ class Simulation:
                 continue
 
             s = s.next
+
+        # check if bunker down
+        for b in self.bunkers:
+            if b.health <= 0 and b.dead == False:
+                b.dead = True
+                print ("bunker "+str(cur_cell.cell_type)+" is dead.")
+                print (str(self.soldierCount)+" soldiers left.")
+                print (str(self.deadSoldierCount)+" soldiers killed.")
 
 
         # output data
@@ -252,12 +271,7 @@ class Simulation:
 
             exportImage(int(self.steps / 10))
 
-
-            
-
         self.steps += 1
-
-        # print ((self.soldiers[0].unit_x, self.soldiers[0].unit_y))
 
         return
         
@@ -291,11 +305,6 @@ class Generator(object):
         self.prev = None
         self.next = None
 
-# class Generator(Cell):
-#     def __init__(self, shipID, *args):
-#         super(Generator, self).__init__(*args)
-#         self.shipID = shipID
-
 class Land(Cell):
     def __init__(self, height, *args): 
         super(Land, self).__init__(*args)
@@ -304,7 +313,7 @@ class Land(Cell):
 class Bunker:
     def __init__(self, bID, center):
         self.bID = bID
-        self.health = 100
+        self.health = 1000
         self.center = center
         self.dead = False
         
@@ -349,6 +358,9 @@ class Soldier:
         probs = [0.0] * 8
         maxDiagProb = 0.6 # Tunable
         randomProb = 0.1 # Tunable
+        repulsion = 0.8 # repulsion for the cone
+        width = len(cells[0])
+        height = len(cells)
 
         if dxa == 0 and dya == 0:
             return
@@ -361,19 +373,54 @@ class Soldier:
             py = (1 - maxDiagProb - randomProb) * dya / (dxa + dya)
             px = 1 - randomProb - pd - py
 
+        nx = self.unit_x
+        ny = self.unit_y
+
         if dx >= 0 and dy >= 0:
+            tmpx = nx+1
+            tmpy = ny+1
+            if tmpx < height and tmpy < width and cells[tmpy][tmpx].cone > -1 and targets[cells[tmpy][tmpx].cone].dead == False:
+                pd *= repulsion
+            if tmpx < height and cells[ny][tmpx].cone > -1 and targets[cells[ny][tmpx].cone].dead == False:
+                px *= repulsion
+            if tmpy < width and cells[tmpy][nx].cone > -1 and targets[cells[tmpy][nx].cone].dead == False:
+                py *= repulsion
             probs[7] = pd
             probs[4] = px
             probs[6] = py
         elif dx >= 0 and dy < 0:
+            tmpx = nx+1
+            tmpy = ny-1
+            if tmpx < height and tmpy >= 0 and cells[tmpy][tmpx].cone > -1 and targets[cells[tmpy][tmpx].cone].dead == False:
+                pd *= repulsion
+            if tmpx < height and cells[ny][tmpx].cone > -1 and targets[cells[ny][tmpx].cone].dead == False:
+                px *= repulsion
+            if tmpy >= 0 and cells[tmpy][nx].cone > -1 and targets[cells[tmpy][nx].cone].dead == False:
+                py *= repulsion
             probs[2] = pd
             probs[4] = px
             probs[1] = py
         elif dx < 0 and dy < 0:
+            tmpx = nx-1
+            tmpy = ny-1
+            if tmpx >= 0 and tmpy >= 0 and cells[tmpy][tmpx].cone > -1 and targets[cells[tmpy][tmpx].cone].dead == False:
+                pd *= repulsion
+            if tmpx >= 0 and cells[ny][tmpx].cone > -1 and targets[cells[ny][tmpx].cone].dead == False:
+                px *= repulsion
+            if tmpy >= 0 and cells[tmpy][nx].cone > -1 and targets[cells[tmpy][nx].cone].dead == False:
+                py *= repulsion
             probs[0] = pd
             probs[3] = px
             probs[1] = py
         elif dx < 0 and dy >= 0:
+            tmpx = nx-1
+            tmpy = ny+1
+            if tmpx >= 0 and tmpy < width and cells[tmpy][tmpx].cone > -1 and targets[cells[tmpy][tmpx].cone].dead == False:
+                pd *= repulsion
+            if tmpx >= 0 and cells[ny][tmpx].cone > -1 and targets[cells[ny][tmpx].cone].dead == False:
+                px *= repulsion
+            if tmpy < width and cells[tmpy][nx].cone > -1 and targets[cells[tmpy][nx].cone].dead == False:
+                py *= repulsion
             probs[5] = pd
             probs[3] = px
             probs[6] = py
@@ -390,9 +437,6 @@ class Soldier:
             decision = i
             if rng < cdf[i]:
                 break
-
-        nx = self.unit_x
-        ny = self.unit_y
 
         if decision == 0:
             nx = self.unit_x - 1
