@@ -2,6 +2,7 @@
 from ast import literal_eval
 import sys
 import random
+import SimConst
 from ExportImage import exportImage
 
 class Simulation:
@@ -21,7 +22,7 @@ class Simulation:
         self.steps = 0
         self.bunkers = []
         self.cells = []
-        random.seed(100) # use the same seed every time
+        random.seed(SimConst.RandomSeed) # use the same seed every time
         self.loadDoc()
 
          # ships linked list
@@ -213,14 +214,14 @@ class Simulation:
             # attacked by bunker
             if cur_cell.cone > -1 and self.bunkers[cur_cell.cone].dead == False:
                 if(random.random() > 0.95):
-                    s.health -= random.randint(1, 3) # (5, 15)
+                    s.health -= random.randint(SimConst.Soldier_Health_Decrease_Min, SimConst.Soldier_Health_Decrease_Max) # (1, 3)
 
             # attack bunker
             if cur_cell.cell_type > 3 and self.bunkers[cur_cell.cell_type-4].dead == False:
                 if(random.random() > 0.05):
-                    s.health -= random.randint(10, 30) # (5, 15)
+                    s.health -= random.randint(SimConst.Soldier_Health_Decrease_At_Bunker_Min, SimConst.Soldier_Health_Decrease_At_Bunker_Max) # (10, 30)
                 if(random.random() > 0.95):
-                    self.bunkers[cur_cell.cell_type - 4].health -= random.randint(1, 3)
+                    self.bunkers[cur_cell.cell_type - 4].health -= random.randint(Bunker_Health_Decrease_Min, Bunker_Health_Decrease_Max)
 
             # check if soldier dies
             if s.health <= 0:
@@ -317,7 +318,7 @@ class Bunker:
         self.health = 1000
         self.center = center
         self.dead = False
-        
+        self.shotsLeft = 100
      
 class Soldier: 
     def __init__(self, sID, unit_x, unit_y, targets):
