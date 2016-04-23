@@ -2,17 +2,17 @@ class SimConst:
 	'''
 	Constants for the simulation
 	'''
+	def __init__(self):
+		self.RandomSeed = 100
 
-	RandomSeed = 100
+		self.Bunker_Default_Shots = 100
+		self.Bunker_Max_Health = 100
+		self.Bunker_Health_Decrease_Max = 3
+		self.Bunker_Health_Decrease_Min = 1
 
-	Bunker_Default_Shots = 100
-	Bunker_Max_Health = 100
-	Bunker_Health_Decrease_Max = 3
-	Bunker_Health_Decrease_Min = 1
+		self.Soldier_Health_Decrease_Max = 3
+		self.Soldier_Health_Decrease_Min = 1
+		self.Soldier_Health_Decrease_At_Bunker_Max = 30
+		self.Soldier_Health_Decrease_At_Bunker_Min = 30
 
-	Soldier_Health_Decrease_Max = 3
-	Soldier_Health_Decrease_Min = 1
-	Soldier_Health_Decrease_At_Bunker_Max = 30
-	Soldier_Health_Decrease_At_Bunker_Min = 30
-
-	Default_Cone_Value = -1
+		self.Default_Cone_Value = -1
