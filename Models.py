@@ -9,9 +9,10 @@ class Simulation:
     This class handles the main simulation events 
     '''
 
-    def __init__(self,state='sleep',time_elapsed=0):
+    def __init__(self, mp = "omaha", state='sleep',time_elapsed=0):
         self.state=state
         self.time_elapsed=time_elapsed
+        self.map = mp
 
     def warmup(self):
         '''
@@ -20,7 +21,7 @@ class Simulation:
         self.steps = 0
         self.bunkers = []
         self.cells = []
-        random.seed(100)
+        random.seed(100) # use the same seed every time
         self.loadDoc()
 
          # ships linked list
@@ -45,14 +46,14 @@ class Simulation:
 
     def loadDoc(self):
         
-        bunkerFile = open("image/sword_target.txt")
+        bunkerFile = open("image/" + self.map + "_target.txt")
         bid = 4
         for line in bunkerFile:
             tmp = Bunker(bid - 4, literal_eval(line))
             self.bunkers.append(tmp)
             bid += 1
 
-        mapfile = open("image/sword.txt")
+        mapfile = open("image/" + self.map + ".txt")
         row = 0
         for line in mapfile:
             col = 0
@@ -69,7 +70,7 @@ class Simulation:
         self.width = len(self.cells[0])
         self.hasShip = [False] * self.width
 
-        conefile = open("image/sword_cone.txt")
+        conefile = open("image/" + self.map + "_cone.txt")
 
         bid = 4
         for line in conefile:
@@ -269,7 +270,7 @@ class Simulation:
                 temp = temp.next
             testfi3.close()
 
-            exportImage(int(self.steps / 10))
+            exportImage(int(self.steps / 10), self.map)
 
         self.steps += 1
 
@@ -357,7 +358,7 @@ class Soldier:
         dya = abs(dy)
         probs = [0.0] * 8
         maxDiagProb = 0.6 # Tunable
-        randomProb = 0.1 # Tunable
+        randomProb = 0.5 # Tunable
         repulsion = 0.8 # repulsion for the cone
         width = len(cells[0])
         height = len(cells)
@@ -432,6 +433,8 @@ class Soldier:
         cdf = [probs[0]]
         for i in range(1, len(probs)):
             cdf.append(cdf[-1] + probs[i])
+        for e in cdf:
+            e /= cdf[-1]
         rng = random.random()
         for i in range(8):
             decision = i
