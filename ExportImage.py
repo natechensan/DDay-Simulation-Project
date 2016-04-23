@@ -2,8 +2,8 @@ from PIL import Image
 import numpy as np
 
 
-def exportImage(t):
-	mapfile = open("image/sword.txt", "r+")
+def exportImage(t, mp):
+	mapfile = open("image/" + mp + ".txt", "r+")
 	data = []
 	for line in mapfile:
 		data.append(line.split(" ")[:-1])
