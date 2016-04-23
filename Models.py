@@ -21,7 +21,7 @@ class Simulation:
         self.steps = 0
         self.bunkers = []
         self.cells = []
-        random.seed(100)
+        random.seed(100) # use the same seed every time
         self.loadDoc()
 
          # ships linked list
@@ -349,6 +349,9 @@ class Soldier:
         probs = [0.0] * 8
         maxDiagProb = 0.6 # Tunable
         randomProb = 0.1 # Tunable
+        repulsion = 0.8 # repulsion for the cone
+        width = len(cells[0])
+        height = len(cells)
 
         if dxa == 0 and dya == 0:
             return
@@ -361,19 +364,54 @@ class Soldier:
             py = (1 - maxDiagProb - randomProb) * dya / (dxa + dya)
             px = 1 - randomProb - pd - py
 
+        nx = self.unit_x
+        ny = self.unit_y
+
         if dx >= 0 and dy >= 0:
+            tmpx = nx+1
+            tmpy = ny+1
+            if tmpx < height and tmpy < width and cells[tmpy][tmpx].cone > -1 and targets[cells[tmpy][tmpx].cone].dead == False:
+                pd *= repulsion
+            if tmpx < height and cells[ny][tmpx].cone > -1 and targets[cells[ny][tmpx].cone].dead == False:
+                px *= repulsion
+            if tmpy < width and cells[tmpy][nx].cone > -1 and targets[cells[tmpy][nx].cone].dead == False:
+                py *= repulsion
             probs[7] = pd
             probs[4] = px
             probs[6] = py
         elif dx >= 0 and dy < 0:
+            tmpx = nx+1
+            tmpy = ny-1
+            if tmpx < height and tmpy >= 0 and cells[tmpy][tmpx].cone > -1 and targets[cells[tmpy][tmpx].cone].dead == False:
+                pd *= repulsion
+            if tmpx < height and cells[ny][tmpx].cone > -1 and targets[cells[ny][tmpx].cone].dead == False:
+                px *= repulsion
+            if tmpy >= 0 and cells[tmpy][nx].cone > -1 and targets[cells[tmpy][nx].cone].dead == False:
+                py *= repulsion
             probs[2] = pd
             probs[4] = px
             probs[1] = py
         elif dx < 0 and dy < 0:
+            tmpx = nx-1
+            tmpy = ny-1
+            if tmpx >= 0 and tmpy >= 0 and cells[tmpy][tmpx].cone > -1 and targets[cells[tmpy][tmpx].cone].dead == False:
+                pd *= repulsion
+            if tmpx >= 0 and cells[ny][tmpx].cone > -1 and targets[cells[ny][tmpx].cone].dead == False:
+                px *= repulsion
+            if tmpy >= 0 and cells[tmpy][nx].cone > -1 and targets[cells[tmpy][nx].cone].dead == False:
+                py *= repulsion
             probs[0] = pd
             probs[3] = px
             probs[1] = py
         elif dx < 0 and dy >= 0:
+            tmpx = nx-1
+            tmpy = ny+1
+            if tmpx >= 0 and tmpy < width and cells[tmpy][tmpx].cone > -1 and targets[cells[tmpy][tmpx].cone].dead == False:
+                pd *= repulsion
+            if tmpx >= 0 and cells[ny][tmpx].cone > -1 and targets[cells[ny][tmpx].cone].dead == False:
+                px *= repulsion
+            if tmpy < width and cells[tmpy][nx].cone > -1 and targets[cells[tmpy][nx].cone].dead == False:
+                py *= repulsion
             probs[5] = pd
             probs[3] = px
             probs[6] = py
@@ -390,9 +428,6 @@ class Soldier:
             decision = i
             if rng < cdf[i]:
                 break
-
-        nx = self.unit_x
-        ny = self.unit_y
 
         if decision == 0:
             nx = self.unit_x - 1
