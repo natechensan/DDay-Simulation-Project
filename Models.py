@@ -19,10 +19,12 @@ class Simulation:
         '''
         handles initial random generation and loading the documents
         '''
+        self.constant = SimConst()
+
         self.steps = 0
         self.bunkers = []
         self.cells = []
-        random.seed(SimConst.RandomSeed) # use the same seed every time
+        random.seed(self.constant.RandomSeed) # use the same seed every time
         self.loadDoc()
 
          # ships linked list
@@ -212,14 +214,14 @@ class Simulation:
             cur_cell = self.cells[s.unit_y][s.unit_x]
             
             # attacked by bunker
-            if cur_cell.cone > -1 and self.bunkers[cur_cell.cone].dead == False:
+            if cur_cell.cone > Default_Cone_Value and self.bunkers[cur_cell.cone].dead == False:
                 if(random.random() > 0.95):
-                    s.health -= random.randint(SimConst.Soldier_Health_Decrease_Min, SimConst.Soldier_Health_Decrease_Max) # (1, 3)
+                    s.health -= random.randint(self.constant.Soldier_Health_Decrease_Min, self.constant.Soldier_Health_Decrease_Max) # (1, 3)
 
             # attack bunker
             if cur_cell.cell_type > 3 and self.bunkers[cur_cell.cell_type-4].dead == False:
                 if(random.random() > 0.05):
-                    s.health -= random.randint(SimConst.Soldier_Health_Decrease_At_Bunker_Min, SimConst.Soldier_Health_Decrease_At_Bunker_Max) # (10, 30)
+                    s.health -= random.randint(self.constant.Soldier_Health_Decrease_At_Bunker_Min, self.constant.Soldier_Health_Decrease_At_Bunker_Max) # (10, 30)
                 if(random.random() > 0.95):
                     self.bunkers[cur_cell.cell_type - 4].health -= random.randint(Bunker_Health_Decrease_Min, Bunker_Health_Decrease_Max)
 
@@ -297,7 +299,7 @@ class Cell(object):
         self.walkable=walkable #only cell has walkability, cuz there is no obstacle cells in the csv file
         # self.neighbors = neighbors
         # self.FFs = FFs
-        self.cone = -1
+        self.cone = self.constant.Default_Cone_Value
 
 class Generator(object):
     def __init__(self, unit_x, unit_y):
@@ -318,7 +320,7 @@ class Bunker:
         self.health = 1000
         self.center = center
         self.dead = False
-        self.shotsLeft = 100
+        self.shotsLeft = Bunker_Default_Shots
      
 class Soldier: 
     def __init__(self, sID, unit_x, unit_y, targets):
