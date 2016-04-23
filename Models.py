@@ -20,7 +20,7 @@ class Simulation:
         self.steps = 0
         self.bunkers = []
         self.cells = []
-        random.seed(100)
+        random.seed(100) # use the same seed every time
         self.loadDoc()
 
          # ships linked list
