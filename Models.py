@@ -2,6 +2,7 @@
 from ast import literal_eval
 import sys
 import random
+import SimConst
 from ExportImage import exportImage
 
 class Simulation:
@@ -18,10 +19,12 @@ class Simulation:
         '''
         handles initial random generation and loading the documents
         '''
+        self.constant = SimConst()
+
         self.steps = 0
         self.bunkers = []
         self.cells = []
-        random.seed(100) # use the same seed every time
+        random.seed(self.constant.RandomSeed) # use the same seed every time
         self.loadDoc()
 
          # ships linked list
@@ -159,7 +162,7 @@ class Simulation:
                 self.shipCount -= 1
                 continue
             else:
-                s.unit_y += 5
+                s.unit_y += self.constant.Ship_Speed
                 s = s.next
 
         # generate soldiers
@@ -221,16 +224,17 @@ class Simulation:
             cur_cell = self.cells[s.unit_y][s.unit_x]
             
             # attacked by bunker
-            if cur_cell.cone > -1 and self.bunkers[cur_cell.cone].dead == False:
-                if(random.random() > 0.95):
-                    s.health -= random.randint(1, 3) # (5, 15)
+            if cur_cell.cone > Default_Cone_Value and self.bunkers[cur_cell.cone].dead == False and self.bunkers[cur_cell.cone].shotsLeft > 0:
+                self.bunkers[cur_cell.cone].shotsLeft -= 1
+                if(random.random() > self.Soldier_Damaged_Chance):
+                    s.health -= random.randint(self.constant.Soldier_Health_Decrease_Min, self.constant.Soldier_Health_Decrease_Max) # (1, 3)
 
             # attack bunker
             if cur_cell.cell_type > 3 and self.bunkers[cur_cell.cell_type-4].dead == False:
-                if(random.random() > 0.05):
-                    s.health -= random.randint(10, 30) # (5, 15)
-                if(random.random() > 0.95):
-                    self.bunkers[cur_cell.cell_type - 4].health -= random.randint(1, 3)
+                if(random.random() > self.constant.Soldier_Damaged_Chance_At_Bunker):
+                    s.health -= random.randint(self.constant.Soldier_Health_Decrease_At_Bunker_Min, self.constant.Soldier_Health_Decrease_At_Bunker_Max) # (10, 30)
+                if(random.random() > self.constant.Bunker_Damaged_Chance):
+                    self.bunkers[cur_cell.cell_type - 4].health -= random.randint(Bunker_Health_Decrease_Min, Bunker_Health_Decrease_Max)
 
             # check if soldier dies
             if s.health <= 0:
@@ -256,6 +260,7 @@ class Simulation:
 
         # check if bunker down
         for b in self.bunkers:
+            b.shotsLeft = self.constant.Bunker_Default_Shots
             if b.health <= 0 and b.dead == False:
                 b.dead = True
                 print ("bunker "+str(cur_cell.cell_type)+" is dead.")
@@ -306,13 +311,13 @@ class Cell(object):
         self.walkable=walkable #only cell has walkability, cuz there is no obstacle cells in the csv file
         # self.neighbors = neighbors
         # self.FFs = FFs
-        self.cone = -1
+        self.cone = self.constant.Default_Cone_Value
 
 class Generator(object):
     def __init__(self, unit_x, unit_y):
         self.unit_x = unit_x
         self.unit_y = unit_y
-        self.numSoldier = 30
+        self.numSoldier = self.constant.Soldier_per_Generator
         self.prev = None
         self.next = None
 
@@ -324,10 +329,10 @@ class Land(Cell):
 class Bunker:
     def __init__(self, bID, center):
         self.bID = bID
-        self.health = 1000
+        self.health = self.constant.Bunker_Default_Health
         self.center = center
         self.dead = False
-        
+        self.shotsLeft = Bunker_Default_Shots
      
 class Soldier: 
     def __init__(self, sID, unit_x, unit_y, targets):
@@ -339,7 +344,7 @@ class Soldier:
 
         #randomize attributes here
         self.speed = 0
-        self.health = 100
+        self.health = self.constant.Soldier_Default_Health
         self.injured = False
         self.morale = 100
 
