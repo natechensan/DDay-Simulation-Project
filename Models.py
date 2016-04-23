@@ -207,7 +207,17 @@ class Simulation:
                 s.findTarget(self.bunkers)
 
             # move to new cell
-            s.move(self.cells, self.bunkers)
+            if self.cells[s.unit_y][s.unit_x].cell_type == 1:
+                s.move(self.cells, self.bunkers)
+                s.move(self.cells, self.bunkers)
+            elif self.cells[s.unit_y][s.unit_x].cell_type == 2:
+                s.move(self.cells, self.bunkers)
+                s.move(self.cells, self.bunkers)
+                s.move(self.cells, self.bunkers)
+            elif self.cells[s.unit_y][s.unit_x].cell_type == 3:
+                s.move(self.cells, self.bunkers)
+            else:
+                s.move(self.cells, self.bunkers)
             cur_cell = self.cells[s.unit_y][s.unit_x]
             
             # attacked by bunker
