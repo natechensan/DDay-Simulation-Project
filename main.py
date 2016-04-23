@@ -1,7 +1,7 @@
 from Models import *
 
 def main():
-    sim = Simulation("gold")
+    sim = Simulation("gold", 100)
     sim.warmup()
     sim.run_simulation()
 
