@@ -23,11 +23,9 @@ class SimConst:
 		self.Soldier_Health_Decrease_At_Bunker_Min = 10
 		self.Soldier_Health_Decrease_Everywhere_Max = 30
 		self.Soldier_Health_Decrease_Everywhere_Min = 10
-		self.Soldier_Damaged_Chance_In_Cone = 0.95
-		self.Soldier_Damaged_Chance_At_Bunker = 0.95
-		self.Soldier_Damaged_Chance_Everywhere = 0.05
-
-
+		self.Soldier_Damaged_Chance_In_Cone = 0.10
+		self.Soldier_Damaged_Chance_At_Bunker = 0.50
+		self.Soldier_Damaged_Chance_Everywhere = 0.01
 
 		self.speedBeach = 2
 		self.speedLand = 3
@@ -35,9 +33,14 @@ class SimConst:
 
 		#Ship
 		self.Ship_Speed = 5
+		self.ShipGenStep = 20
+		self.ShipGenNumber = 5
 
 		# Cells
 		self.Default_Cone_Value = -1
 
 		#Generators
 		self.Soldier_per_Generator = 30
+
+		# Output Image
+		self.StepPerImage = 20
