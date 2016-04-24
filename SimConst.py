@@ -21,11 +21,12 @@ class SimConst:
 		self.Soldier_Health_Decrease_In_Cone_Min = 10
 		self.Soldier_Health_Decrease_At_Bunker_Max = 30
 		self.Soldier_Health_Decrease_At_Bunker_Min = 10
-		self.Soldier_Health_Decrease_Everywhere_Max = 30
-		self.Soldier_Health_Decrease_Everywhere_Min = 10
+		self.Soldier_Health_Decrease_On_Beach_Max = 30
+		self.Soldier_Health_Decrease_On_Beach_Min = 10
 		self.Soldier_Damaged_Chance_In_Cone = 0.10
 		self.Soldier_Damaged_Chance_At_Bunker = 0.50
-		self.Soldier_Damaged_Chance_Everywhere = 0.01
+		self.Soldier_Damaged_Chance_On_Beach = 0.01
+
 
 		self.speedBeach = 2
 		self.speedLand = 3
