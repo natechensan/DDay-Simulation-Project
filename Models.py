@@ -86,8 +86,6 @@ class Simulation:
                 self.cells[cone[1]][cone[0]].cone = bid - 4
             bid+=1
 
-        # print(self.cells)
-
         return
     
     def run_simulation(self):
@@ -105,7 +103,7 @@ class Simulation:
         return False
 
     def execute(self):
-        while(self.bunkersLeft() == True and self.deadSoldierCount < 5000):
+        while(self.bunkersLeft() == True and self.deadSoldierCount < 10000):
             self.step()
         
         self.stop_simulation()
@@ -113,12 +111,12 @@ class Simulation:
     def step(self):
 
         if self.steps % 200 == 0:
-            print (str(self.soldierCount)+" soldiers left.")
+            print (str(self.soldierCount)+" soldiers in field.")
             print (str(self.deadSoldierCount)+" soldiers killed.")
 
         # generate ships
-        if self.steps % 20 == 0:
-            for i in range(5):
+        if self.steps % constant.ShipGenStep == 0:
+            for i in range(constant.ShipGenNumber):
                 rng = random.randint(self.margin, self.width - self.margin)
                 while self.hasShip[rng]:
                     rng = random.randint(self.margin, self.width - self.margin)
@@ -232,16 +230,16 @@ class Simulation:
                 if(random.random() < constant.Soldier_Damaged_Chance_In_Cone):
                     s.health -= random.randint(constant.Soldier_Health_Decrease_In_Cone_Min, constant.Soldier_Health_Decrease_In_Cone_Max)
 
-            # soldier gets attacked everywhere
-            if(random.random() < constant.Soldier_Damaged_Chance_Everywhere):
-                s.health -= random.randint(constant.Soldier_Health_Decrease_Everywhere_Min, constant.Soldier_Health_Decrease_Everywhere_Max)
+            # soldier gets attacked on beach
+            if random.random() < constant.Soldier_Damaged_Chance_On_Beach and cur_cell.cell_type == 1:
+                s.health -= random.randint(constant.Soldier_Health_Decrease_On_Beach_Min, constant.Soldier_Health_Decrease_On_Beach_Max)
 
             # attack bunker
             if cur_cell.cell_type > 3 and self.bunkers[cur_cell.cell_type-4].dead == False:
                 if(random.random() < constant.Soldier_Damaged_Chance_At_Bunker):
                     s.health -= random.randint(constant.Soldier_Health_Decrease_At_Bunker_Min, constant.Soldier_Health_Decrease_At_Bunker_Max)
                 if(random.random() < constant.Bunker_Damaged_Chance):
-                    self.bunkers[cur_cell.cell_type - 4].health -= random.randint(Bunker_Health_Decrease_Min, Bunker_Health_Decrease_Max)
+                    self.bunkers[cur_cell.cell_type - 4].health -= random.randint(constant.Bunker_Health_Decrease_Min, constant.Bunker_Health_Decrease_Max)
 
             # check if soldier dies
             if s.health <= 0:
@@ -270,32 +268,34 @@ class Simulation:
             b.shotsLeft = constant.Bunker_Default_Shots
             if b.health <= 0 and b.dead == False:
                 b.dead = True
-                print ("bunker "+str(cur_cell.cell_type)+" is dead.")
-                print (str(self.soldierCount)+" soldiers left.")
+                print ("bunker "+str(b.bID)+" is dead.")
+                print (str(self.soldierCount)+" soldiers in field.")
                 print (str(self.deadSoldierCount)+" soldiers killed.")
 
 
         # output data
-        if self.steps % 10 == 0:
+        if self.steps % constant.StepPerImage == 0:
 
-            testfi2 = open("images2/test" + str(int(self.steps / 10)) + '.csv', 'w')
+            testfi2 = open("images2/test" + str(int(self.steps / constant.StepPerImage)) + '.csv', 'w')
             temp = self.soldierHead
             while temp != None:
                 testfi2.write(str(temp.unit_x)+','+str(temp.unit_y)+'\n')
                 temp = temp.next
             testfi2.close()
 
-            testfi3 = open("images2/ship" + str(int(self.steps / 10)) + '.csv', 'w')
+            testfi3 = open("images2/ship" + str(int(self.steps / constant.StepPerImage)) + '.csv', 'w')
             temp = self.shipHead
             while temp != None:
                 testfi3.write(str(temp.unit_x)+','+str(temp.unit_y)+'\n')
                 temp = temp.next
             testfi3.close()
 
-            exportImage(int(self.steps / 10), self.map)
+            exportImage(int(self.steps / constant.StepPerImage), self.map)
 
         self.steps += 1
-        print("step: " + str(self.steps))
+
+        if self.steps % constant.StepPerImage == 0:
+            print("step: " + str(self.steps))
 
         return
         
