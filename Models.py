@@ -91,7 +91,6 @@ class Simulation:
     def run_simulation(self):
         self.state='running'
         self.steps = 0
-        self.ped_count = 0
         print ('simulation starts')
         self.execute()
         return
@@ -231,8 +230,9 @@ class Simulation:
                     s.health -= random.randint(constant.Soldier_Health_Decrease_In_Cone_Min, constant.Soldier_Health_Decrease_In_Cone_Max)
 
             # soldier gets attacked on beach
-            if random.random() < constant.Soldier_Damaged_Chance_On_Beach and cur_cell.cell_type == 1:
-                s.health -= random.randint(constant.Soldier_Health_Decrease_On_Beach_Min, constant.Soldier_Health_Decrease_On_Beach_Max)
+            if cur_cell.cell_type == 1:
+                if random.random() < constant.Soldier_Damaged_Chance_On_Beach:
+                    s.health -= random.randint(constant.Soldier_Health_Decrease_On_Beach_Min, constant.Soldier_Health_Decrease_On_Beach_Max)
 
             # attack bunker
             if cur_cell.cell_type > 3 and self.bunkers[cur_cell.cell_type-4].dead == False:
@@ -274,23 +274,23 @@ class Simulation:
 
 
         # output data
-        if self.steps % constant.StepPerImage == 0:
+        # if self.steps % constant.StepPerImage == 0:
 
-            testfi2 = open("images2/test" + str(int(self.steps / constant.StepPerImage)) + '.csv', 'w')
-            temp = self.soldierHead
-            while temp != None:
-                testfi2.write(str(temp.unit_x)+','+str(temp.unit_y)+'\n')
-                temp = temp.next
-            testfi2.close()
+        #     testfi2 = open("images2/test" + str(int(self.steps / constant.StepPerImage)) + '.csv', 'w')
+        #     temp = self.soldierHead
+        #     while temp != None:
+        #         testfi2.write(str(temp.unit_x)+','+str(temp.unit_y)+'\n')
+        #         temp = temp.next
+        #     testfi2.close()
 
-            testfi3 = open("images2/ship" + str(int(self.steps / constant.StepPerImage)) + '.csv', 'w')
-            temp = self.shipHead
-            while temp != None:
-                testfi3.write(str(temp.unit_x)+','+str(temp.unit_y)+'\n')
-                temp = temp.next
-            testfi3.close()
+        #     testfi3 = open("images2/ship" + str(int(self.steps / constant.StepPerImage)) + '.csv', 'w')
+        #     temp = self.shipHead
+        #     while temp != None:
+        #         testfi3.write(str(temp.unit_x)+','+str(temp.unit_y)+'\n')
+        #         temp = temp.next
+        #     testfi3.close()
 
-            exportImage(int(self.steps / constant.StepPerImage), self.map)
+        #     exportImage(int(self.steps / constant.StepPerImage), self.map)
 
         self.steps += 1
 
